@@ -1,0 +1,74 @@
+Bootstrap: docker
+From: debian:bullseye
+      
+%labels
+    Maintainer Carlo Mancini-Terracciano
+
+%files
+    ./fluka_4-5.0.x86-Linux-gfor9_amd64.deb /opt/fluka_4-5.0.x86-Linux-gfor9_amd64.deb
+    ./corsika-77500.tar.gz /opt/corsika-77500.tar.gz
+    
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    export FLUPRO=/usr/local/fluka    
+    export PATH=$FLUPRO/bin:$PATH
+    export LD_LIBRARY_PATH=$FLUPRO/lib:$LD_LIBRARY_PATH
+    echo "FLUPRO: $FLUPRO"
+
+
+    apt-get update && apt-get -y --no-install-recommends install \
+        gcc-9 \
+	g++-9 \
+        gfortran-9 \
+        make \
+        perl \
+        wget \
+        unzip \
+	tar
+#	&& apt-get -y clean && rm -rf /var/lib/apt/lists/*
+
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100 \
+                        --slave /usr/bin/g++ g++ /usr/bin/g++-9 \
+                        --slave /usr/bin/gfortran gfortran /usr/bin/gfortran-9
+
+    dpkg -i /opt/fluka_4-5.0.x86-Linux-gfor9_amd64.deb || apt-get -f install -y
+    # ln -s /usr/local/fluka/lib/libfluka.a /usr/local/fluka/lib/libflukahp.a
+
+    export FLUKADATA=$($FLUPRO/bin/fluka-config --data)
+    echo "FLUKADATA: $FLUKADATA"
+    # ls -l $FLUPRO/lib
+    # find $FLUPRO -name "libflukahp.a"
+    # dpkg-deb -c /opt/fluka_4-5.0.x86-Linux-gfor9_amd64.deb | grep '\.a$'
+
+    tar -xvzf /opt/corsika-77500.tar.gz -C /opt/
+    sed -i '1i FLUPRO=/usr/local/fluka' /opt/corsika-77500/configure
+    sed -i '1i FLUKADATA=/usr/local/fluka/data' /opt/corsika-77500/configure
+    sed -i '1i FLUPRO=/usr/local/fluka\necho "FLUPRO is set to: \$FLUPRO"' /opt/corsika-77500/configure
+
+    cd /opt/corsika-77500 && \
+    ./coconut <<EOF
+2
+2
+2
+1
+2a
+z
+yes
+k
+EOF
+
+    apt-get -y clean && rm -rf /var/lib/apt/lists/*
+
+%environment
+    export LANG=C.UTF-8
+    export PATH=/opt/corsika-77500/run:$PATH
+    export FLUPRO=/usr/local/fluka    
+    export PATH=$FLUPRO/bin:$PATH
+    export LD_LIBRARY_PATH=$FLUPRO/lib:$LD_LIBRARY_PATH
+    export FLUKADATA=$($FLUPRO/bin/fluka-config --data)
+    
+%runscript
+    cd /opt/corsika-77500/run
+    exec ./corsika77500Linux_EPOS_fluka_thin "$@"
+
+    
