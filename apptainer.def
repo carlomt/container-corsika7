@@ -4,6 +4,9 @@ From: debian:bookworm-slim
 %labels
     Maintainer Carlo Mancini-Terracciano
 
+%files
+    corsika-77500.tar.gz /opt/corsika-77500.tar.gz
+
 %environment
     export LANG=C.UTF-8
     export PATH=/opt/corsika-77500/run:$PATH
@@ -18,30 +21,30 @@ From: debian:bookworm-slim
         perl \
         wget \
         unzip \
+	tar \
         && apt-get -y clean && rm -rf /var/lib/apt/lists/*
 
-    cp -r /build/corsika-77500 /opt/corsika-77500
+    # cp -r /build/corsika-77500 /opt/corsika-77500
+    tar -xvzf /opt/corsika-77500.tar.gz -C /opt/
 
-    echo ">>> Rinomina dei file EPOS..."
-    cd /opt/corsika-77500/epos && \
-    cp epos.inics.lhc epos.inics && \
-    cp epos.inirj.lhc epos.inirj
+    # echo ">>> Rinomina dei file EPOS..."
+    # cd /opt/corsika-77500/epos && \
+    # cp epos.inics.lhc epos.inics && \
+    # cp epos.inirj.lhc epos.inirj
 
     cd /opt/corsika-77500 && \
     ./coconut <<EOF
-2 #64bit
-2 #EPOS LHC
-4 #URQMD 1.3cr
-1 #horizontal flat detector array
-2a #THIN
-z #accept selection
-yes #confirm
-k #compile
+2
+2
+4
+1
+2a
+z
+yes
+k
 EOF
 
 %runscript
     cd /opt/corsika-77500/run
     exec ./corsika77500Linux_EPOS_urqmd_thin "$@"
 
-%files
-    corsika-77500 /build/corsika-77500
